@@ -184,17 +184,21 @@
 </script>
 
 <div class="game-container">
-  <div class="words-list">
-    <h2>Score: {score}</h2>
-    <h2>Time: {Math.ceil(timeRemaining)}s</h2>
-    {#if !gameStarted && !gameOver}
-      <button on:click={startGame}>Start Game</button>
-    {/if}
-    {#if gameOver}
-      <h2>Game Over!</h2>
-      <p>Final Score: {score}</p>
-      <button on:click={startGame}>Play Again</button>
-    {/if}
+  <div class="sidebar">
+    <div class="info">
+      <h1>Raining letters</h1>
+      <h2>Score: {score}</h2>
+      <h2>Time: {Math.ceil(timeRemaining)}s</h2>
+    </div>
+    <div class="controls-container">
+      {#if !gameStarted && !gameOver}
+        <button on:click={startGame}>Start Game</button>
+      {/if}
+      {#if gameOver}
+        <h2>Game Over!</h2>
+        <button on:click={startGame}>Play Again</button>
+      {/if}
+    </div>
   </div>
 
   <div class="game-board" bind:this={gameBoard}>
@@ -211,6 +215,12 @@
         {raindrop.letter}
       </div>
     {/each}
+    {#if gameOver}
+      <div class="final-score">
+        <p>Final Score: {score}</p>
+      </div>
+    {/if}
+
     {#if gameStarted && !gameOver}
       <div class="current-word">
         {#each currentWord.split("") as letter, index}
@@ -231,9 +241,12 @@
     height: calc(100vh - 1rem);
   }
 
-  .words-list {
+  .sidebar {
     width: 200px;
     padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
 
   .game-board {
@@ -257,6 +270,21 @@
     justify-content: center;
     font-size: 3rem;
     cursor: pointer;
+  }
+
+  .final-score {
+    background: #fff;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3rem;
+    color: #000;
+    text-align: center;
+  }
+  .final-score p {
+    margin: 0;
+    padding: 1rem 2rem;
   }
 
   .current-word {
