@@ -253,7 +253,6 @@
     position: relative;
     width: calc(100% - 200px);
     height: 100%;
-    background-color: #87ceeb;
     overflow: hidden;
   }
 
