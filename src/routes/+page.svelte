@@ -6,19 +6,30 @@
     import { browser } from "$app/environment";
     import GameOverScreen from "$lib/game-over-screen.svelte";
     import StartGameScreen from "$lib/start-game-screen.svelte";
+    import SlidersIcon from "$lib/sliders-icon.svelte";
+    import Settings from "$lib/settings.svelte";
 
-    let words = shuffleArray([
-        ...WORDS.round1,
-        ...WORDS.round2,
-        ...WORDS.round3,
-    ]);
+    const DEFUALTTIMELIMIT = 60;
+
+    let words = [];
+    let settings = {
+        rainbowMode: false,
+        timeLimit: DEFUALTTIMELIMIT,
+        wordSets: {
+            round1: true,
+            round2: true,
+            round3: true,
+        },
+    };
+
     let currentWordIndex = 0;
+    let isPaused = false;
     let raindrops = [];
+    let settingsOpen = false;
     let gameBoard;
     let gameLoop;
     let score = 0;
-    const timeLimit = 60;
-    let timeRemaining = timeLimit;
+    let timeRemaining = settings.timeLimit;
     let gameStarted = false;
     let gameOver = false;
     let completedLetters = "";
@@ -39,6 +50,11 @@
         }
     });
 
+    function getRandomColor() {
+        const hue = Math.floor(Math.random() * 360);
+        return `hsl(${hue}, 100%, 70%)`;
+    }
+
     function adjustGameBoardHeight() {
         if (gameBoard && browser) {
             gameBoard.style.height = `${window.innerHeight}px`;
@@ -57,26 +73,24 @@
         currentWordIndex = 0;
         raindrops = [];
         score = 0;
-        timeRemaining = timeLimit;
+        timeRemaining = settings.timeLimit;
         gameStarted = true;
         gameOver = false;
         completedLetters = "";
-        words = shuffleArray([
-            ...WORDS.round1,
-            ...WORDS.round2,
-            ...WORDS.round3,
-        ]);
+        updateWordList();
     }
 
     function startGameLoop() {
         gameLoop = setInterval(() => {
             updateGameState();
-            if (Math.random() < 0.2) {
-                addRaindrop();
-            }
-            timeRemaining -= 0.08;
-            if (timeRemaining <= 0) {
-                endGame();
+            if (!isPaused) {
+                if (Math.random() < 0.2) {
+                    addRaindrop();
+                }
+                timeRemaining -= 0.08;
+                if (timeRemaining <= 0) {
+                    endGame();
+                }
             }
         }, 50);
     }
@@ -88,6 +102,7 @@
     }
 
     function updateGameState() {
+        if (isPaused) return;
         raindrops = raindrops
             .map((drop) => ({
                 ...drop,
@@ -107,6 +122,7 @@
                 letter: letter,
                 speed: Math.random() * 6 + 1,
                 selected: false,
+                color: settings.rainbowMode ? getRandomColor() : "#bbddee",
             },
         ];
     }
@@ -125,6 +141,13 @@
             Math.floor(Math.random() * weightedAlphabet.length)
         ];
     }
+    function updateWordList() {
+        words = shuffleArray([
+            ...(settings.wordSets.round1 ? WORDS.round1 : []),
+            ...(settings.wordSets.round2 ? WORDS.round2 : []),
+            ...(settings.wordSets.round3 ? WORDS.round3 : []),
+        ]);
+    }
 
     function handleClick(raindrop) {
         if (!gameStarted || gameOver) return;
@@ -141,8 +164,8 @@
                 flashScore(50);
                 score += 50;
                 confetti({
-                    particleCount: 100,
-                    spread: 70,
+                    particleCount: 200,
+                    spread: 80,
                     origin: { y: 0.6 },
                 });
                 currentWordIndex++;
@@ -167,10 +190,10 @@
         flashElement.style.left = "50%";
         flashElement.style.top = "50%";
         flashElement.style.transform = "translate(-50%, -50%)";
-        flashElement.style.fontSize = "3rem";
-        flashElement.style.color = points > 0 ? "green" : "red";
+        flashElement.style.fontSize = "5rem";
+        flashElement.style.color = points > 0 ? "#99ff99" : "#ff8888";
         flashElement.style.opacity = "1";
-        flashElement.style.transition = "opacity 1s";
+        flashElement.style.transition = "opacity 1.5s";
         gameBoard.appendChild(flashElement);
 
         setTimeout(() => {
@@ -180,6 +203,12 @@
         setTimeout(() => {
             gameBoard.removeChild(flashElement);
         }, 1050);
+    }
+    function handleSettingsChange(event) {
+        settings = event.detail;
+        if (gameStarted) {
+            updateWordList();
+        }
     }
 
     function startGame() {
@@ -192,13 +221,23 @@
         gameOver = true;
         gameStarted = false;
     }
+
+    function toggleSettingsOpen() {
+        settingsOpen = !settingsOpen;
+        isPaused = settingsOpen;
+    }
 </script>
 
 <div class="game-container">
     <div class="game-info">
-        <h1>Raining letters</h1>
-        <h2>Score: {score}</h2>
-        <h2>Time: {Math.ceil(timeRemaining)}s</h2>
+        <div>
+            <h1>Raining letters</h1>
+            <h2>Score: {score}</h2>
+            <h2>Time: {Math.ceil(timeRemaining)}s</h2>
+        </div>
+        <button class="clear-button" on:click={toggleSettingsOpen}>
+            <SlidersIcon size="1.6rem" />
+        </button>
     </div>
 
     <div class="game-board" bind:this={gameBoard}>
@@ -209,18 +248,26 @@
                 on:keydown={(e) => e.key === "Enter" && handleClick(raindrop)}
                 class="raindrop"
                 class:selected={raindrop.selected}
-                style="left: {raindrop.x}px; top: {raindrop.y}px;"
+                style="left: {raindrop.x}px; top: {raindrop.y}px; background-color: {raindrop.color};"
                 on:click={() => handleClick(raindrop)}
             >
                 {raindrop.letter}
             </div>
         {/each}
-        {#if gameOver}
+        {#if gameOver && !settingsOpen}
             <GameOverScreen {score} {startGame} />
         {/if}
 
-        {#if !gameStarted && !gameOver}
+        {#if !gameStarted && !gameOver && !settingsOpen}
             <StartGameScreen {startGame} />
+        {/if}
+
+        {#if settingsOpen}
+            <Settings
+                {toggleSettingsOpen}
+                {settings}
+                on:change={handleSettingsChange}
+            />
         {/if}
 
         {#if gameStarted && !gameOver}
@@ -272,10 +319,10 @@
 
     .raindrop {
         position: absolute;
+        z-index: 10;
         width: 5rem;
         height: 5rem;
-        background-color: #1e90ff;
-        color: white;
+        color: black;
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -288,6 +335,7 @@
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         position: absolute;
         bottom: 3rem;
+        z-index: 20;
         left: 50%;
         transform: translateX(-50%);
         font-size: 6rem;
@@ -296,7 +344,7 @@
     }
 
     .current-word .completed {
-        color: rgba(76, 175, 80, 1);
+        color: rgba(90, 255, 90, 1);
     }
 
     @keyframes flash {
@@ -307,5 +355,13 @@
         50% {
             opacity: 1;
         }
+    }
+    .clear-button {
+        background-color: transparent;
+        margin: 0;
+        padding: 2px;
+        outline: none;
+        border: none;
+        cursor: pointer;
     }
 </style>

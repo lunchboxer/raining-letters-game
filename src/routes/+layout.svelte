@@ -3,6 +3,10 @@
     import Footer from "$lib/footer.svelte";
 </script>
 
+<svelte:head>
+    <title>Raining Letters</title>
+</svelte:head>
+
 <main>
     <slot />
 
