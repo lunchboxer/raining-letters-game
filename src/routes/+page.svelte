@@ -1,328 +1,304 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
-  import { WORDS } from "$lib/words";
-  import confetti from "canvas-confetti";
-  import { nanoid } from "nanoid";
-  import { browser } from "$app/environment";
+    import { onMount, onDestroy } from "svelte";
+    import { WORDS } from "$lib/words";
+    import confetti from "canvas-confetti";
+    import { nanoid } from "nanoid";
+    import { browser } from "$app/environment";
+    import GameOverScreen from "$lib/game-over-screen.svelte";
+    import StartGameScreen from "$lib/start-game-screen.svelte";
 
-  let words = [];
-  let currentWordIndex = 0;
-  let raindrops = [];
-  let gameBoard;
-  let gameLoop;
-  let score = 0;
-  let timeRemaining = 60;
-  let gameStarted = false;
-  let gameOver = false;
-  let completedLetters = "";
+    let words = shuffleArray([
+        ...WORDS.round1,
+        ...WORDS.round2,
+        ...WORDS.round3,
+    ]);
+    let currentWordIndex = 0;
+    let raindrops = [];
+    let gameBoard;
+    let gameLoop;
+    let score = 0;
+    const timeLimit = 20;
+    let timeRemaining = timeLimit;
+    let gameStarted = false;
+    let gameOver = false;
+    let completedLetters = "";
 
-  $: currentWord = words[currentWordIndex] || "";
+    $: currentWord = words[currentWordIndex] || "";
 
-  onMount(() => {
-    words = shuffleArray([...WORDS.round1, ...WORDS.round2, ...WORDS.round3]);
-    adjustGameBoardHeight();
-    if (browser) {
-      window.addEventListener("resize", adjustGameBoardHeight);
-    }
-  });
-
-  onDestroy(() => {
-    stopGameLoop();
-    if (browser) {
-      window.removeEventListener("resize", adjustGameBoardHeight);
-    }
-  });
-
-  function adjustGameBoardHeight() {
-    if (gameBoard && browser) {
-      gameBoard.style.height = `${window.innerHeight - 50}px`;
-    }
-  }
-
-  function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-  }
-
-  function initializeGame() {
-    currentWordIndex = 0;
-    raindrops = [];
-    score = 0;
-    timeRemaining = 60;
-    gameStarted = true;
-    gameOver = false;
-    completedLetters = "";
-  }
-
-  function startGameLoop() {
-    gameLoop = setInterval(() => {
-      updateGameState();
-      if (Math.random() < 0.2) {
-        addRaindrop();
-      }
-      timeRemaining -= 0.08;
-      if (timeRemaining <= 0) {
-        endGame();
-      }
-    }, 50);
-  }
-
-  function stopGameLoop() {
-    if (gameLoop) {
-      clearInterval(gameLoop);
-    }
-  }
-
-  function updateGameState() {
-    raindrops = raindrops
-      .map((drop) => ({
-        ...drop,
-        y: drop.y + drop.speed,
-      }))
-      .filter((drop) => drop.y < gameBoard.clientHeight);
-  }
-
-  function addRaindrop() {
-    const letter = getWeightedRandomLetter();
-    raindrops = [
-      ...raindrops,
-      {
-        x: Math.random() * (gameBoard.clientWidth - 60),
-        y: -60,
-        id: nanoid(),
-        letter: letter,
-        speed: Math.random() * 6 + 1,
-        selected: false,
-      },
-    ];
-  }
-
-  function getWeightedRandomLetter() {
-    const remainingLetters = currentWord;
-    const alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
-    const shuffledAlphabet = alphabet.sort(() => 0.5 - Math.random());
-    const someOtherLetters = shuffledAlphabet
-      .filter((letter) => {
-        return !remainingLetters.includes(letter);
-      })
-      .slice(0, remainingLetters.length - 1);
-    const weightedAlphabet = remainingLetters + someOtherLetters.join("");
-    return weightedAlphabet[
-      Math.floor(Math.random() * weightedAlphabet.length)
-    ];
-  }
-
-  function handleClick(raindrop) {
-    if (!gameStarted || gameOver) return;
-    const { letter, id } = raindrop;
-
-    raindrops = raindrops.filter((drop) => drop.id !== id);
-    if (
-      currentWord[completedLetters.length].toLowerCase() ===
-      letter.toLowerCase()
-    ) {
-      completedLetters += letter.toLowerCase();
-
-      if (completedLetters.length === currentWord.length) {
-        flashScore(50);
-        score += 50;
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
-        currentWordIndex++;
-        completedLetters = "";
-        if (currentWordIndex >= words.length) {
-          endGame();
+    onMount(() => {
+        adjustGameBoardHeight();
+        if (browser) {
+            window.addEventListener("resize", adjustGameBoardHeight);
         }
-      } else {
-        score += 10;
-        flashScore(10);
-      }
-    } else {
-      score = Math.max(0, score - 5);
-      flashScore(-5);
+    });
+
+    onDestroy(() => {
+        stopGameLoop();
+        if (browser) {
+            window.removeEventListener("resize", adjustGameBoardHeight);
+        }
+    });
+
+    function adjustGameBoardHeight() {
+        if (gameBoard && browser) {
+            gameBoard.style.height = `${window.innerHeight - 50}px`;
+        }
     }
-  }
 
-  function flashScore(points) {
-    const flashElement = document.createElement("div");
-    flashElement.textContent = points > 0 ? `+${points}` : points;
-    flashElement.style.position = "absolute";
-    flashElement.style.left = "50%";
-    flashElement.style.top = "50%";
-    flashElement.style.transform = "translate(-50%, -50%)";
-    flashElement.style.fontSize = "3rem";
-    flashElement.style.color = points > 0 ? "green" : "red";
-    flashElement.style.opacity = "1";
-    flashElement.style.transition = "opacity 1s";
-    gameBoard.appendChild(flashElement);
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
 
-    setTimeout(() => {
-      flashElement.style.opacity = "0";
-    }, 50);
+    function initializeGame() {
+        currentWordIndex = 0;
+        raindrops = [];
+        score = 0;
+        timeRemaining = timeLimit;
+        gameStarted = true;
+        gameOver = false;
+        completedLetters = "";
+        words = shuffleArray([
+            ...WORDS.round1,
+            ...WORDS.round2,
+            ...WORDS.round3,
+        ]);
+    }
 
-    setTimeout(() => {
-      gameBoard.removeChild(flashElement);
-    }, 1050);
-  }
+    function startGameLoop() {
+        gameLoop = setInterval(() => {
+            updateGameState();
+            if (Math.random() < 0.2) {
+                addRaindrop();
+            }
+            timeRemaining -= 0.08;
+            if (timeRemaining <= 0) {
+                endGame();
+            }
+        }, 50);
+    }
 
-  function startGame() {
-    initializeGame();
-    startGameLoop();
-  }
+    function stopGameLoop() {
+        if (gameLoop) {
+            clearInterval(gameLoop);
+        }
+    }
 
-  function endGame() {
-    stopGameLoop();
-    gameOver = true;
-    gameStarted = false;
-  }
+    function updateGameState() {
+        raindrops = raindrops
+            .map((drop) => ({
+                ...drop,
+                y: drop.y + drop.speed,
+            }))
+            .filter((drop) => drop.y < gameBoard.clientHeight);
+    }
+
+    function addRaindrop() {
+        const letter = getWeightedRandomLetter();
+        raindrops = [
+            ...raindrops,
+            {
+                x: Math.random() * (gameBoard.clientWidth - 60),
+                y: -60,
+                id: nanoid(),
+                letter: letter,
+                speed: Math.random() * 6 + 1,
+                selected: false,
+            },
+        ];
+    }
+
+    function getWeightedRandomLetter() {
+        const remainingLetters = currentWord;
+        const alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
+        const shuffledAlphabet = alphabet.sort(() => 0.5 - Math.random());
+        const someOtherLetters = shuffledAlphabet
+            .filter((letter) => {
+                return !remainingLetters.includes(letter);
+            })
+            .slice(0, remainingLetters.length - 1);
+        const weightedAlphabet = remainingLetters + someOtherLetters.join("");
+        return weightedAlphabet[
+            Math.floor(Math.random() * weightedAlphabet.length)
+        ];
+    }
+
+    function handleClick(raindrop) {
+        if (!gameStarted || gameOver) return;
+        const { letter, id } = raindrop;
+
+        raindrops = raindrops.filter((drop) => drop.id !== id);
+        if (
+            currentWord[completedLetters.length].toLowerCase() ===
+            letter.toLowerCase()
+        ) {
+            completedLetters += letter.toLowerCase();
+
+            if (completedLetters.length === currentWord.length) {
+                flashScore(50);
+                score += 50;
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                });
+                currentWordIndex++;
+                completedLetters = "";
+                if (currentWordIndex >= words.length) {
+                    endGame();
+                }
+            } else {
+                score += 10;
+                flashScore(10);
+            }
+        } else {
+            score = Math.max(0, score - 5);
+            flashScore(-5);
+        }
+    }
+
+    function flashScore(points) {
+        const flashElement = document.createElement("div");
+        flashElement.textContent = points > 0 ? `+${points}` : points;
+        flashElement.style.position = "absolute";
+        flashElement.style.left = "50%";
+        flashElement.style.top = "50%";
+        flashElement.style.transform = "translate(-50%, -50%)";
+        flashElement.style.fontSize = "3rem";
+        flashElement.style.color = points > 0 ? "green" : "red";
+        flashElement.style.opacity = "1";
+        flashElement.style.transition = "opacity 1s";
+        gameBoard.appendChild(flashElement);
+
+        setTimeout(() => {
+            flashElement.style.opacity = "0";
+        }, 50);
+
+        setTimeout(() => {
+            gameBoard.removeChild(flashElement);
+        }, 1050);
+    }
+
+    function startGame() {
+        initializeGame();
+        startGameLoop();
+    }
+
+    function endGame() {
+        stopGameLoop();
+        gameOver = true;
+        gameStarted = false;
+    }
 </script>
 
 <div class="game-container">
-  <div class="sidebar">
-    <div class="info">
-      <h1>Raining letters</h1>
-      <h2>Score: {score}</h2>
-      <h2>Time: {Math.ceil(timeRemaining)}s</h2>
+    <div class="sidebar">
+        <h1>Raining letters</h1>
+        <h2>Score: {score}</h2>
+        <h2>Time: {Math.ceil(timeRemaining)}s</h2>
+        <div class="controls-container"></div>
     </div>
-    <div class="controls-container">
-      {#if !gameStarted && !gameOver}
-        <button on:click={startGame}>Start Game</button>
-      {/if}
-      {#if gameOver}
-        <h2>Game Over!</h2>
-        <button on:click={startGame}>Play Again</button>
-      {/if}
-    </div>
-  </div>
 
-  <div class="game-board" bind:this={gameBoard}>
-    {#each raindrops as raindrop (raindrop.id)}
-      <div
-        role="button"
-        tabindex="0"
-        on:keydown={(e) => e.key === "Enter" && handleClick(raindrop)}
-        class="raindrop"
-        class:selected={raindrop.selected}
-        style="left: {raindrop.x}px; top: {raindrop.y}px;"
-        on:click={() => handleClick(raindrop)}
-      >
-        {raindrop.letter}
-      </div>
-    {/each}
-    {#if gameOver}
-      <div class="final-score">
-        <p>Final Score: {score}</p>
-      </div>
-    {/if}
-
-    {#if gameStarted && !gameOver}
-      <div class="current-word">
-        {#each currentWord.split("") as letter, index}
-          <span class:completed={index < completedLetters.length}>{letter}</span
-          >
+    <div class="game-board" bind:this={gameBoard}>
+        {#each raindrops as raindrop (raindrop.id)}
+            <div
+                role="button"
+                tabindex="0"
+                on:keydown={(e) => e.key === "Enter" && handleClick(raindrop)}
+                class="raindrop"
+                class:selected={raindrop.selected}
+                style="left: {raindrop.x}px; top: {raindrop.y}px;"
+                on:click={() => handleClick(raindrop)}
+            >
+                {raindrop.letter}
+            </div>
         {/each}
-      </div>
-    {/if}
-  </div>
+        {#if gameOver}
+            <GameOverScreen {score} {startGame} />
+        {/if}
+
+        {#if !gameStarted && !gameOver}
+            <StartGameScreen {startGame} />
+        {/if}
+
+        {#if gameStarted && !gameOver}
+            <div class="current-word">
+                {#each currentWord.split("") as letter, index}
+                    <span class:completed={index < completedLetters.length}
+                        >{letter}</span
+                    >
+                {/each}
+            </div>
+        {/if}
+    </div>
 </div>
 
 <style>
-  .game-container {
-    font-family: Lexend, sans-serif;
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    height: calc(100vh - 1rem);
-  }
-
-  .sidebar {
-    width: 200px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .game-board {
-    position: relative;
-    width: calc(100% - 200px);
-    height: 100%;
-    overflow: hidden;
-  }
-
-  .raindrop {
-    position: absolute;
-    width: 5rem;
-    height: 5rem;
-    background-color: #1e90ff;
-    color: white;
-    border: 2px solid #111;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    cursor: pointer;
-  }
-
-  .final-score {
-    background: #fff;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 3rem;
-    color: #000;
-    text-align: center;
-  }
-  .final-score p {
-    margin: 0;
-    padding: 1rem 2rem;
-  }
-
-  .current-word {
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    position: absolute;
-    bottom: 3rem;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 6rem;
-    color: rgba(255, 255, 255, 0.8);
-    text-align: center;
-  }
-
-  .current-word .completed {
-    color: rgba(76, 175, 80, 1);
-  }
-
-  @keyframes flash {
-    0%,
-    100% {
-      opacity: 0;
+    .game-container {
+        width: calc(100% - 2rem);
+        padding: 0;
+        height: calc(100vh - 4.5rem);
+        display: flex;
+        flex-direction: column;
     }
-    50% {
-      opacity: 1;
+
+    .sidebar {
+        width: 100%;
+        padding: 0.5rem 1rem;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: baseline;
     }
-  }
 
-  button {
-    font-size: 1.2rem;
-    padding: 10px 20px;
-    margin-top: 10px;
-    background-color: #4caf50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
+    .game-board {
+        position: relative;
+        width: calc(100% - 1rem);
+        padding: 1rem;
+        overflow: hidden;
+        margin: 0 auto;
+    }
 
-  button:hover {
-    background-color: #45a049;
-  }
+    .raindrop {
+        position: absolute;
+        width: 5rem;
+        height: 5rem;
+        background-color: #1e90ff;
+        color: white;
+        border: 2px solid #111;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        cursor: pointer;
+    }
+
+    .current-word {
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        position: absolute;
+        bottom: 3rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 6rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-align: center;
+    }
+
+    .current-word .completed {
+        color: rgba(76, 175, 80, 1);
+    }
+
+    @keyframes flash {
+        0%,
+        100% {
+            opacity: 0;
+        }
+        50% {
+            opacity: 1;
+        }
+    }
 </style>
