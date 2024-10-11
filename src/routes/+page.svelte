@@ -41,7 +41,7 @@
 
     function adjustGameBoardHeight() {
         if (gameBoard && browser) {
-            gameBoard.style.height = `${window.innerHeight - 50}px`;
+            gameBoard.style.height = `${window.innerHeight}px`;
         }
     }
 
@@ -237,16 +237,20 @@
 
 <style>
     .game-container {
-        width: calc(100% - 2rem);
+        width: calc(100% - 1rem);
         padding: 0;
-        height: calc(100vh - 4rem);
+        height: 100vh;
         display: flex;
         flex-direction: column;
     }
     .game-info {
-        width: 100%;
-        padding: 0 1rem;
+        position: absolute;
+        z-index: 5;
+        top: 0;
+        left: 0;
+        width: calc(100% - 3rem);
         display: flex;
+        padding-left: 1rem;
         flex-direction: row;
         justify-content: space-between;
         align-items: baseline;

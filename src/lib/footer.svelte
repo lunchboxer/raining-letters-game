@@ -4,8 +4,10 @@
 
 <style>
     footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
         padding: 0.5rem;
-        text-align: center;
         font-size: 0.9rem;
     }
     .icp {
