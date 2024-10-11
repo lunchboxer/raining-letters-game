@@ -38,6 +38,7 @@ button:hover {
 
 .modal {
     padding: 2rem;
+    margin: 0;
     border-radius: 1rem;
     background: #222;
     font-size: 2rem;
@@ -53,6 +54,12 @@ button:hover {
     -webkit-box-shadow: 6px 6px 12px 0px rgba(0, 0, 0, 0.2);
     -moz-box-shadow: 6px 6px 12px 0px rgba(0, 0, 0, 0.2);
     box-shadow: 6px 6px 12px 0px rgba(0, 0, 0, 0.2);
+}
+
+@media screen and (max-width: 600px) {
+    .modal {
+        width: 100%;
+    }
 }
 
 .modal h2 {
