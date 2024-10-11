@@ -8,6 +8,7 @@
     import StartGameScreen from "$lib/start-game-screen.svelte";
     import SlidersIcon from "$lib/sliders-icon.svelte";
     import Settings from "$lib/settings.svelte";
+    import { Howl } from "howler";
 
     const DEFUALTTIMELIMIT = 60;
 
@@ -15,12 +16,29 @@
     let settings = {
         rainbowMode: false,
         timeLimit: DEFUALTTIMELIMIT,
+        playSounds: true,
         wordSets: {
             round1: true,
             round2: true,
             round3: true,
         },
     };
+
+    const correctLetterSound = new Howl({
+        src: ["/correct_letter.mp3"],
+    });
+
+    const correctWordSound = new Howl({
+        src: ["/correct_word.mp3"],
+    });
+
+    const losePointsSound = new Howl({
+        src: ["/lose_points.mp3"],
+    });
+
+    const gameEndSound = new Howl({
+        src: ["/game_end.mp3"],
+    });
 
     let currentWordIndex = 0;
     let isPaused = false;
@@ -163,6 +181,7 @@
             if (completedLetters.length === currentWord.length) {
                 flashScore(50);
                 score += 50;
+                if (settings.playSounds) correctWordSound.play();
                 confetti({
                     particleCount: 200,
                     spread: 80,
@@ -175,10 +194,12 @@
                 }
             } else {
                 score += 10;
+                if (settings.playSounds) correctLetterSound.play();
                 flashScore(10);
             }
         } else {
             score = Math.max(0, score - 5);
+            if (settings.playSounds) losePointsSound.play();
             flashScore(-5);
         }
     }
@@ -189,6 +210,7 @@
         flashElement.style.position = "absolute";
         flashElement.style.left = "50%";
         flashElement.style.top = "50%";
+        flashElement.style.zIndex = "100";
         flashElement.style.transform = "translate(-50%, -50%)";
         flashElement.style.fontSize = "5rem";
         flashElement.style.color = points > 0 ? "#99ff99" : "#ff8888";
@@ -218,6 +240,7 @@
 
     function endGame() {
         stopGameLoop();
+        if (settings.playSounds) gameEndSound.play();
         gameOver = true;
         gameStarted = false;
     }

@@ -22,6 +22,14 @@
         on:change={handleChange}
     />
     <label for="rainbow-mode">Rainbow mode</label>
+    <br />
+    <input
+        name="playSounds"
+        type="checkbox"
+        bind:checked={settings.playSounds}
+        on:change={handleChange}
+    />
+    <label for="playSounds">Sounds</label>
 
     <h3>Word Sets</h3>
 
