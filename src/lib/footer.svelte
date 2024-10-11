@@ -7,7 +7,7 @@
         position: absolute;
         bottom: 0;
         left: 0;
-        padding: 0.5rem;
+        padding: 0.8rem;
         font-size: 0.9rem;
     }
     .icp {
@@ -15,7 +15,7 @@
     }
     @media screen and (max-width: 600px) {
         footer {
-            padding: 0.3rem;
+            padding: 0.4rem;
             font-size: 0.75rem;
         }
     }
