@@ -17,7 +17,7 @@
     let gameBoard;
     let gameLoop;
     let score = 0;
-    const timeLimit = 20;
+    const timeLimit = 60;
     let timeRemaining = timeLimit;
     let gameStarted = false;
     let gameOver = false;
@@ -195,11 +195,10 @@
 </script>
 
 <div class="game-container">
-    <div class="sidebar">
+    <div class="game-info">
         <h1>Raining letters</h1>
         <h2>Score: {score}</h2>
         <h2>Time: {Math.ceil(timeRemaining)}s</h2>
-        <div class="controls-container"></div>
     </div>
 
     <div class="game-board" bind:this={gameBoard}>
@@ -240,18 +239,23 @@
     .game-container {
         width: calc(100% - 2rem);
         padding: 0;
-        height: calc(100vh - 4.5rem);
+        height: calc(100vh - 4rem);
         display: flex;
         flex-direction: column;
     }
-
-    .sidebar {
+    .game-info {
         width: 100%;
-        padding: 0.5rem 1rem;
+        padding: 0 1rem;
         display: flex;
         flex-direction: row;
         justify-content: space-between;
         align-items: baseline;
+    }
+
+    @media screen and (max-width: 600px) {
+        .game-info {
+            font-size: 0.7rem;
+        }
     }
 
     .game-board {
@@ -268,7 +272,6 @@
         height: 5rem;
         background-color: #1e90ff;
         color: white;
-        border: 2px solid #111;
         border-radius: 50%;
         display: flex;
         align-items: center;

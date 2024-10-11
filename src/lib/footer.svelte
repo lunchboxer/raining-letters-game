@@ -11,4 +11,10 @@
     .icp {
         font-size: 0.7rem;
     }
+    @media screen and (max-width: 600px) {
+        footer {
+            padding: 0.3rem;
+            font-size: 0.75rem;
+        }
+    }
 </style>

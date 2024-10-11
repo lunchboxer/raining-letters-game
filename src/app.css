@@ -28,3 +28,24 @@ button:hover {
     background: rgba(255, 255, 255, 0.8);
     z-index: 1;
 }
+
+.modal {
+    padding: 2rem;
+    border-radius: 1rem;
+    background: #fff;
+    font-size: 2rem;
+    z-index: 100;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: #000;
+    text-align: center;
+    -webkit-box-shadow: 6px 6px 12px 0px rgba(0, 0, 0, 0.2);
+    -moz-box-shadow: 6px 6px 12px 0px rgba(0, 0, 0, 0.2);
+    box-shadow: 6px 6px 12px 0px rgba(0, 0, 0, 0.2);
+}
+
+.modal h2 {
+    margin: 0;
+}
