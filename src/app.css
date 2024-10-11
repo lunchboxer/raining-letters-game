@@ -1,3 +1,8 @@
+@font-face {
+    font-family: 'Lexend';
+    src: url('/Lexend-Regular.ttf') format('truetype');
+}
+
 body {
     background-image: url("/rainny-background.webp");
     padding: 0;
