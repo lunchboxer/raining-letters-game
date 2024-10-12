@@ -6,8 +6,6 @@
     import { browser } from "$app/environment";
     import GameOverScreen from "$lib/game-over-screen.svelte";
     import StartGameScreen from "$lib/start-game-screen.svelte";
-    import SlidersIcon from "$lib/sliders-icon.svelte";
-    import Settings from "$lib/settings.svelte";
     import { Howl } from "howler";
 
     const DEFUALTTIMELIMIT = 60;
@@ -52,6 +50,9 @@
     let gameOver = false;
     let completedLetters = "";
 
+    let audioBuffer = {};
+    const BUFFER_SIZE = 5;
+
     $: currentWord = words[currentWordIndex] || "";
 
     onMount(() => {
@@ -67,6 +68,24 @@
             window.removeEventListener("resize", adjustGameBoardHeight);
         }
     });
+
+    function preloadAudio(wordIndex) {
+        const end = Math.min(wordIndex + BUFFER_SIZE, words.length);
+        for (let i = wordIndex; i < end; i++) {
+            if (!audioBuffer[words[i]]) {
+                audioBuffer[words[i]] = new Howl({
+                    src: [`/audio/${words[i]}.mp3`],
+                    preload: true,
+                });
+            }
+        }
+    }
+
+    function playWordAudio() {
+        if (settings.playSounds && audioBuffer[words[currentWordIndex]]) {
+            audioBuffer[words[currentWordIndex]].play();
+        }
+    }
 
     function getRandomColor() {
         const hue = Math.floor(Math.random() * 360);
@@ -96,6 +115,7 @@
         gameOver = false;
         completedLetters = "";
         updateWordList();
+        playWordAudio();
     }
 
     function startGameLoop() {
@@ -160,11 +180,21 @@
         ];
     }
     function updateWordList() {
-        words = shuffleArray([
+        const newWords = shuffleArray([
             ...(settings.wordSets.round1 ? WORDS.round1 : []),
             ...(settings.wordSets.round2 ? WORDS.round2 : []),
             ...(settings.wordSets.round3 ? WORDS.round3 : []),
         ]);
+        const newAudioBuffer = {};
+        newWords.forEach((word) => {
+            if (audioBuffer[word]) {
+                newAudioBuffer[word] = audioBuffer[word];
+            }
+        });
+
+        words = newWords;
+        audioBuffer = newAudioBuffer;
+        preloadAudio(0);
     }
 
     function handleClick(raindrop) {
@@ -181,16 +211,28 @@
             if (completedLetters.length === currentWord.length) {
                 flashScore(50);
                 score += 50;
-                if (settings.playSounds) correctWordSound.play();
+                currentWordIndex++;
+                completedLetters = "";
                 confetti({
                     particleCount: 200,
                     spread: 80,
                     origin: { y: 0.6 },
                 });
-                currentWordIndex++;
-                completedLetters = "";
-                if (currentWordIndex >= words.length) {
+                if (settings.playSounds) {
+                    correctWordSound.play();
+                    correctWordSound.on("end", () => {
+                        completedLetters = "";
+                        if (currentWordIndex >= words.length) {
+                            endGame();
+                        } else {
+                            preloadAudio(currentWordIndex);
+                            playWordAudio();
+                        }
+                    });
+                } else if (currentWordIndex >= words.length) {
                     endGame();
+                } else {
+                    preloadAudio(currentWordIndex);
                 }
             } else {
                 score += 10;
@@ -244,11 +286,6 @@
         gameOver = true;
         gameStarted = false;
     }
-
-    function toggleSettingsOpen() {
-        settingsOpen = !settingsOpen;
-        isPaused = settingsOpen;
-    }
 </script>
 
 <div class="game-container">
@@ -258,9 +295,6 @@
             <h2>Score: {score}</h2>
             <h2>Time: {Math.ceil(timeRemaining)}s</h2>
         </div>
-        <button class="clear-button" on:click={toggleSettingsOpen}>
-            <SlidersIcon size="1.6rem" />
-        </button>
     </div>
 
     <div class="game-board" bind:this={gameBoard}>
@@ -282,12 +316,8 @@
         {/if}
 
         {#if !gameStarted && !gameOver && !settingsOpen}
-            <StartGameScreen {startGame} />
-        {/if}
-
-        {#if settingsOpen}
-            <Settings
-                {toggleSettingsOpen}
+            <StartGameScreen
+                {startGame}
                 {settings}
                 on:change={handleSettingsChange}
             />
@@ -378,13 +408,5 @@
         50% {
             opacity: 1;
         }
-    }
-    .clear-button {
-        background-color: transparent;
-        margin: 0;
-        padding: 2px;
-        outline: none;
-        border: none;
-        cursor: pointer;
     }
 </style>
