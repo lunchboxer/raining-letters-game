@@ -10,7 +10,6 @@
 
     const DEFUALTTIMELIMIT = 60;
 
-    let words = [];
     let settings = {
         rainbowMode: false,
         timeLimit: DEFUALTTIMELIMIT,
@@ -21,6 +20,11 @@
             round3: true,
         },
     };
+    let words = shuffleArray([
+        ...(settings.wordSets.round1 ? WORDS.round1 : []),
+        ...(settings.wordSets.round2 ? WORDS.round2 : []),
+        ...(settings.wordSets.round3 ? WORDS.round3 : []),
+    ]);
 
     const correctLetterSound = new Howl({
         src: ["/correct_letter.mp3"],
@@ -38,6 +42,7 @@
         src: ["/game_end.mp3"],
     });
 
+    let nextWordAudio;
     let currentWordIndex = 0;
     let isPaused = false;
     let raindrops = [];
@@ -50,9 +55,19 @@
     let gameOver = false;
     let completedLetters = "";
 
-    let audioBuffer = {};
-    const BUFFER_SIZE = 5;
-
+    function preloadAudio(index) {
+        nextWordAudio = new Howl({
+            src: [`/audio/${words[index]}.mp3`],
+            preload: true,
+        });
+        nextWordAudio.on("end", () => {
+            nextWordAudio = new Howl({
+                src: [`/audio/${words[index + 1]}.mp3`],
+                preload: true,
+            });
+        });
+    }
+    preloadAudio(0);
     $: currentWord = words[currentWordIndex] || "";
 
     onMount(() => {
@@ -69,21 +84,12 @@
         }
     });
 
-    function preloadAudio(wordIndex) {
-        const end = Math.min(wordIndex + BUFFER_SIZE, words.length);
-        for (let i = wordIndex; i < end; i++) {
-            if (!audioBuffer[words[i]]) {
-                audioBuffer[words[i]] = new Howl({
-                    src: [`/audio/${words[i]}.mp3`],
-                    preload: true,
-                });
-            }
-        }
-    }
-
     function playWordAudio() {
-        if (settings.playSounds && audioBuffer[words[currentWordIndex]]) {
-            audioBuffer[words[currentWordIndex]].play();
+        if (settings.playSounds) {
+            nextWordAudio.on("end", () => {
+                preloadAudio(currentWordIndex + 1);
+            });
+            nextWordAudio.play();
         }
     }
 
@@ -114,7 +120,6 @@
         gameStarted = true;
         gameOver = false;
         completedLetters = "";
-        updateWordList();
         playWordAudio();
     }
 
@@ -180,21 +185,12 @@
         ];
     }
     function updateWordList() {
-        const newWords = shuffleArray([
+        words = shuffleArray([
             ...(settings.wordSets.round1 ? WORDS.round1 : []),
             ...(settings.wordSets.round2 ? WORDS.round2 : []),
             ...(settings.wordSets.round3 ? WORDS.round3 : []),
         ]);
-        const newAudioBuffer = {};
-        newWords.forEach((word) => {
-            if (audioBuffer[word]) {
-                newAudioBuffer[word] = audioBuffer[word];
-            }
-        });
-
-        words = newWords;
-        audioBuffer = newAudioBuffer;
-        preloadAudio(0);
+        preloadAudio(currentWordIndex);
     }
 
     function handleClick(raindrop) {
@@ -225,14 +221,11 @@
                         if (currentWordIndex >= words.length) {
                             endGame();
                         } else {
-                            preloadAudio(currentWordIndex);
                             playWordAudio();
                         }
                     });
                 } else if (currentWordIndex >= words.length) {
                     endGame();
-                } else {
-                    preloadAudio(currentWordIndex);
                 }
             } else {
                 score += 10;
@@ -285,6 +278,8 @@
         if (settings.playSounds) gameEndSound.play();
         gameOver = true;
         gameStarted = false;
+        currentWordIndex = 0;
+        updateWordList();
     }
 </script>
 
